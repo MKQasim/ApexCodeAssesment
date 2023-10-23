@@ -5,26 +5,17 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import com.apex.codeassesment.R
-//import com.apex.codeassesment.data.UserRepository
-//import com.apex.codeassesment.data.model.User
 import com.apex.codeassesment.ui.details.DetailsActivity
 import com.apex.codeassesment.databinding.ActivityMainBinding
-import android.widget.ImageView
 import android.widget.TextView
-import android.widget.Button
 import androidx.recyclerview.widget.RecyclerView
 import android.view.View
 import android.view.ViewGroup
 import android.view.LayoutInflater
-import android.widget.ArrayAdapter
-import android.widget.ListView
 import androidx.recyclerview.widget.LinearLayoutManager
 
 
-
-
 // Import necessary libraries
-import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.apex.codeassesment.data.UserRepository
@@ -33,9 +24,7 @@ import com.apex.codeassesment.data.local.PreferencesManager
 import com.apex.codeassesment.data.model.Picture
 import com.apex.codeassesment.data.model.User
 import com.apex.codeassesment.data.remote.RemoteDataSource
-import com.apex.codeassesment.di.MainComponent
 import com.bumptech.glide.Glide
-import javax.inject.Inject
 
 // TODO (5 points): Move calls to repository to Presenter or ViewModel.
 // TODO (5 points): Use combination of sealed/Dataclasses for exposing the data required by the view from viewModel .
@@ -55,7 +44,6 @@ class MainActivity : AppCompatActivity() {
   private var userListView: RecyclerView? = null
 
   companion object {
-    // Declare a sharedContext variable to hold the context
     lateinit var sharedContext: Context
   }
 
@@ -64,40 +52,58 @@ class MainActivity : AppCompatActivity() {
     binding = ActivityMainBinding.inflate(layoutInflater)
     setContentView(binding.root)
     sharedContext = this
-    // Initialize PreferencesManager with the application context
+
     val preferencesManager = PreferencesManager(sharedContext)
-    // Initialize LocalDataSource with PreferencesManager
     localDataSource = LocalDataSource(preferencesManager)
     userRepository = UserRepository(localDataSource, RemoteDataSource())
 
-    // Initialize the ViewModel directly
     mainViewModel = MainViewModel(userRepository)
 
-    // Observe LiveData for user data
-    mainViewModel.userList.observe(this, { userList -> userAdapter?.updateUsers(userList) })
-    mainViewModel.userData.observe(this, { user ->
-      if (user != null) {
-        // Update other UI components using data binding
-        binding.mainEmail.text = user.email
-        binding.mainName.text = user.name?.first
-
-        // Update the user picture using the Picture object
-        user.picture = Picture(
-          large = "https://images.unsplash.com/photo-1575936123452-b67c3203c357?auto=format&fit=crop&q=80&w=2940&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-          medium = "https://images.unsplash.com/photo-1575936123452-b67c3203c357?auto=format&fit=crop&q=80&w=2940&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-          thumbnail = "https://images.unsplash.com/photo-1575936123452-b67c3203c357?auto=format&fit=crop&q=80&w=2940&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-        )
-        // TODO (1 point): Use Glide to load images after getting the data from endpoints mentioned in RemoteDataSource
-        // Load the user image with Glide using data binding
-        if (user.picture != null) {
-          Glide.with(this).load(user.picture!!.large).into(binding.mainImage)
+    mainViewModel.viewState.observe(this, { viewState ->
+      when (viewState) {
+        is MainViewState.UserDataLoaded -> {
+          val user = viewState.user
+          binding.mainEmail.text = user.email
+          binding.mainName.text = user.name?.first
+          // Update the user picture using the Picture object
+          user.picture = Picture(
+            large = "https://images.unsplash.com/photo-1575936123452-b67c3203c357?auto=format&fit=crop&q=80&w=2940&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+            medium = "https://images.unsplash.com/photo-1575936123452-b67c3203c357?auto.format&fit=crop&q=80&w=2940&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+            thumbnail = "https://images.unsplash.com/photo-1575936123452-b67c3203c357?auto.format&fit=crop&q=80&w=2940&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+          )
+          // TODO (1 point): Use Glide to load images after getting the data from endpoints mentioned in RemoteDataSource
+          if (user.picture != null) {
+            Glide.with(this).load(user?.picture?.large).into(binding.mainImage)
+          }
+        }
+        is MainViewState.UserListLoaded -> {
+          val users = viewState.users
+          userAdapter?.updateUsers(users)
+        }
+        is MainViewState.Error -> {
+          // Handle error state, e.g., show an error message
+          // viewState.message contains the error message
+        }
+        MainViewState.Loading -> {
+          // Handle loading state, e.g., show a loading indicator
         }
       }
     })
 
     binding.mainSeeDetailsButton.setOnClickListener {
-      mainViewModel.userData.value?.let { it1 -> this.navigateDetails(it1) }
+      val user = mainViewModel.viewState.value?.let { getUserFromViewState(it) }
+      user?.let { navigateDetails(it) }
+
     }
+
+    binding.mainSeeDetailsButton.setOnClickListener {
+      val userViewState = mainViewModel.viewState.value as? MainViewState.UserDataLoaded
+      val user = userViewState?.getUserFromViewState()
+      user?.navigateDetails(this)
+    }
+
+
+
     binding.mainUserList.layoutManager = LinearLayoutManager(this)
     binding.mainUserList.adapter = userAdapter
 
@@ -107,44 +113,77 @@ class MainActivity : AppCompatActivity() {
     binding.mainUserListButton.setOnClickListener {
       mainViewModel.showUserList()
     }
-    // Load initial user data and show the user list initially
+
     mainViewModel.loadInitialUser()
     mainViewModel.showUserList()
   }
-  // TODO (2 points): Convert to extenstion function.
+
+  // Extension function to navigate to user details
+  private fun User.navigateDetails(context: Context) {
+    val intent = Intent(context, DetailsActivity::class.java)
+    intent.putExtra("saved-user-key", this)
+    context.startActivity(intent)
+  }
+
+  private fun MainViewState.UserDataLoaded.getUserFromViewState(): User? {
+    return this.user
+  }
+
   private fun navigateDetails(user: User) {
-    // Create an Intent to start the DetailsActivity
     val intent = Intent(this, DetailsActivity::class.java)
     intent.putExtra("saved-user-key", user)
-    // Start the DetailsActivity using the Intent
     startActivity(intent)
+  }
+
+  private fun getUserFromViewState(viewState: MainViewState): User? {
+    return if (viewState is MainViewState.UserDataLoaded) {
+      viewState.user
+    } else {
+      null
+    }
   }
 }
 
+sealed class MainViewState {
+  data class UserDataLoaded(val user: User) : MainViewState()
+  data class UserListLoaded(val users: List<User>) : MainViewState()
+  data class Error(val message: String) : MainViewState()
+  object Loading : MainViewState()
+}
+
 class MainViewModel(private val userRepository: UserRepository) : ViewModel() {
-  // LiveData to hold the user data
-  val userData = MutableLiveData<User>()
-  val userList = MutableLiveData<List<User>>()
+  val viewState = MutableLiveData<MainViewState>()
 
   fun loadInitialUser() {
+    // When the user data is loaded successfully, set the viewState to UserDataLoaded
     val user = userRepository.getSavedUser()
-    userData.value = user
+    viewState.value = MainViewState.UserDataLoaded(user)
   }
 
   fun refreshUser() {
+    // Loading state
+    viewState.value = MainViewState.Loading
+
+    // Fetch user data and handle success or error
     val user = userRepository.getUser(true)
-    userData.value = user
+    if (user != null) {
+      viewState.value = MainViewState.UserDataLoaded(user)
+    } else {
+      viewState.value = MainViewState.Error("Failed to load user data")
+    }
   }
 
   fun showUserList() {
+    // Loading state
+    viewState.value = MainViewState.Loading
+
+    // Fetch user list and handle success or error
     val users = userRepository.getUsers()
-    userList.value = users
-  }
-
-  fun navigateDetails(user: User) {
-    // Navigate to user details using user data
-    // You can use an Intent here or navigate to another fragment/activity.
-
+    if (users.isNotEmpty()) {
+      viewState.value = MainViewState.UserListLoaded(users)
+    } else {
+      viewState.value = MainViewState.Error("Failed to load user list")
+    }
   }
 }
 
