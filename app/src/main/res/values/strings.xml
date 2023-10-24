@@ -16,4 +16,6 @@
     <string name="location_phone">Location of this phone: (%1$s, %2$s)</string>
     <string name="location_result_miles">[%f] miles</string>
     <string name="todo">TODO</string>
+    <string name="user_profile_image_description">Users Profile Image</string>
+
 </resources>

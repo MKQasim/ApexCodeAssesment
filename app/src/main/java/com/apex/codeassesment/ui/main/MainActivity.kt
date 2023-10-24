@@ -29,8 +29,8 @@ import com.bumptech.glide.Glide
 // TODO (5 points): Move calls to repository to Presenter or ViewModel.
 // TODO (5 points): Use combination of sealed/Dataclasses for exposing the data required by the view from viewModel .
 // TODO (3 points): Add tests for viewmodel or presenter.
-// TODO (1 point): Add content description to images
-// TODO (3 points): Add tests
+// TODO (1 point) : Add content description to images.
+// TODO (3 points): Add tests.
 // TODO (Optional Bonus 10 points): Make a copy of this activity with different name and convert the current layout it is using in
 // TODO (Jetpack Compose).
 
@@ -41,7 +41,6 @@ class MainActivity : AppCompatActivity() {
   private lateinit var localDataSource: LocalDataSource
   private lateinit var userRepository: UserRepository
   private var userAdapter: UserAdapter? = null
-  private var userListView: RecyclerView? = null
 
   companion object {
     lateinit var sharedContext: Context
@@ -59,6 +58,14 @@ class MainActivity : AppCompatActivity() {
 
     mainViewModel = MainViewModel(userRepository)
 
+    // Initialize the userAdapter and set it on the RecyclerView
+    userAdapter = UserAdapter(emptyList()) { user ->
+      // Handle item click here if needed
+      print("${user.email}")
+    }
+    binding.mainUserList.layoutManager = LinearLayoutManager(this)
+    binding.mainUserList.adapter = userAdapter
+
     mainViewModel.viewState.observe(this, { viewState ->
       when (viewState) {
         is MainViewState.UserDataLoaded -> {
@@ -71,9 +78,23 @@ class MainActivity : AppCompatActivity() {
             medium = "https://images.unsplash.com/photo-1575936123452-b67c3203c357?auto.format&fit=crop&q=80&w=2940&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
             thumbnail = "https://images.unsplash.com/photo-1575936123452-b67c3203c357?auto.format&fit=crop&q=80&w=2940&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
           )
-          // TODO (1 point): Use Glide to load images after getting the data from endpoints mentioned in RemoteDataSource
+          // Load the user's picture
           if (user.picture != null) {
-            Glide.with(this).load(user?.picture?.large).into(binding.mainImage)
+            val imageView = binding.mainImage
+            Glide.with(this)
+              .load(user?.picture?.large)
+              .into(imageView)
+            // Set the content description for the image
+            // Access the content description
+            val contentDescription = imageView.contentDescription
+
+            // Now you can use the content description as needed
+            if (contentDescription != null) {
+              // Do something with the content description
+              // For example, set it as a label for the image view
+              imageView.contentDescription = "Profile picture of ${user.name?.first}"
+              print(imageView.contentDescription);
+            }
           }
         }
         is MainViewState.UserListLoaded -> {
@@ -91,31 +112,22 @@ class MainActivity : AppCompatActivity() {
     })
 
     binding.mainSeeDetailsButton.setOnClickListener {
-      val user = mainViewModel.viewState.value?.let { getUserFromViewState(it) }
-      user?.let { navigateDetails(it) }
-
-    }
-
-    binding.mainSeeDetailsButton.setOnClickListener {
       val userViewState = mainViewModel.viewState.value as? MainViewState.UserDataLoaded
       val user = userViewState?.getUserFromViewState()
       user?.navigateDetails(this)
     }
 
-
-
-    binding.mainUserList.layoutManager = LinearLayoutManager(this)
-    binding.mainUserList.adapter = userAdapter
-
     binding.mainRefreshButton.setOnClickListener {
+      // Refresh all UI components
       mainViewModel.refreshUser()
     }
+
     binding.mainUserListButton.setOnClickListener {
+      // Show the user list obtained from a remote source
       mainViewModel.showUserList()
     }
 
     mainViewModel.loadInitialUser()
-    mainViewModel.showUserList()
   }
 
   // Extension function to navigate to user details

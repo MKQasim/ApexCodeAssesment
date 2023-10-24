@@ -8,9 +8,6 @@
     android:padding="16dp"
     tools:context=".ui.main.MainActivity">
 
-    <!-- TODO (2 points): Convert to ConstraintLayout -->
-    <!-- TODO (1 point): Address Android Studio warnings -->
-
     <TextView
         android:id="@+id/main_title"
         android:layout_width="0dp"
@@ -30,7 +27,7 @@
         android:background="#33aaaaaa"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/main_title"
-        android:contentDescription="@string/todo" />
+        android:contentDescription="@string/user_profile_image_description" />
 
     <TextView
         android:id="@+id/main_name"
@@ -96,8 +93,6 @@
         app:layout_constraintEnd_toEndOf="parent"
         android:text="@string/show_10_users"
         tools:ignore="VisualLintButtonSize" />
-
-    <!-- TODO (5 points): Convert to RecyclerView -->
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/main_user_list"
