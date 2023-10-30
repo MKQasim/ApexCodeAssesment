@@ -9,11 +9,11 @@ import java.util.*
 @JsonClass(generateAdapter = true)
 data class User(
   val gender: String? = null,
-  val name: Name? = null,
-  val location: Location? = null,
-  val email: String? = null,
+  var name: Name? = null,
+  var location: Location? = null,
+  var email: String? = null,
   val login: Login? = null,
-  val dob: Dob? = null,
+  var dob: Dob? = null,
   val registered: Dob? = null,
   val phone: String? = null,
   val cell: String? = null,
@@ -27,7 +27,7 @@ data class User(
     fun createRandom(): User {
       return User(
         name = Name(first = randomString(), last = randomString()),
-        location = Location(coordinates = Coordinates(randomDouble().toString(), randomDouble().toString())),
+        location = Location(coordinates = Coordinates(randomDouble(), randomDouble())),
         email = randomString() + "@gmail.com",
         dob = Dob(age = 25)
       )

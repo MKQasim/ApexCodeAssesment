@@ -9,11 +9,12 @@
     <string name="show_10_users">Show 10 users</string>
     <string name="details_name">Name: %1$s %2$s</string>
     <string name="details_email">Email: %s</string>
+    <string name="details_age">Date of Birth: %s</string>
     <string name="details_location">Location: (%1$s, %2$s)</string>
     <string name="calculate_distance_button_details">Calculate distance from current location</string>
     <string name="calculate_distance_button">Calculate distance</string>
-    <string name="location_random_user">Location of random user: (%1$s, %2$s)</string>
-    <string name="location_phone">Location of this phone: (%1$s, %2$s)</string>
+    <string name="location_random_user">Location of random user: (%1$.6f, %2$.6f)</string>
+    <string name="location_phone">Location of this phone: (%1$.6f, %2$.6f)</string>
     <string name="location_result_miles">[%f] miles</string>
     <string name="todo">TODO</string>
     <string name="user_profile_image_description">Users Profile Image</string>

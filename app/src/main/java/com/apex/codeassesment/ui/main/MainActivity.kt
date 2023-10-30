@@ -18,6 +18,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 // Import necessary libraries
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.lifecycleScope
+import com.apex.codeassesment.data.ApiResult
 import com.apex.codeassesment.data.UserRepository
 import com.apex.codeassesment.data.local.LocalDataSource
 import com.apex.codeassesment.data.local.PreferencesManager
@@ -25,6 +27,7 @@ import com.apex.codeassesment.data.model.Picture
 import com.apex.codeassesment.data.model.User
 import com.apex.codeassesment.data.remote.RemoteDataSource
 import com.bumptech.glide.Glide
+import kotlinx.coroutines.launch
 
 // TODO (5 points): Move calls to repository to Presenter or ViewModel.
 // TODO (5 points): Use combination of sealed/Dataclasses for exposing the data required by the view from viewModel .
@@ -119,15 +122,21 @@ class MainActivity : AppCompatActivity() {
 
     binding.mainRefreshButton.setOnClickListener {
       // Refresh all UI components
-      mainViewModel.refreshUser()
+      lifecycleScope.launch {
+        mainViewModel.refreshUser()
+      }
     }
 
     binding.mainUserListButton.setOnClickListener {
       // Show the user list obtained from a remote source
-      mainViewModel.showUserList()
-    }
 
-    mainViewModel.loadInitialUser()
+      lifecycleScope.launch {
+        mainViewModel.showUserList()
+      }
+    }
+    lifecycleScope.launch {
+      mainViewModel.loadInitialUser()
+    }
   }
 
   // Extension function to navigate to user details
@@ -166,38 +175,49 @@ sealed class MainViewState {
 class MainViewModel(private val userRepository: UserRepository) : ViewModel() {
   val viewState = MutableLiveData<MainViewState>()
 
-  fun loadInitialUser() {
-    // When the user data is loaded successfully, set the viewState to UserDataLoaded
-    val user = userRepository.getSavedUser()
-    viewState.value = MainViewState.UserDataLoaded(user)
-  }
-
-  fun refreshUser() {
-    // Loading state
-    viewState.value = MainViewState.Loading
-
-    // Fetch user data and handle success or error
-    val user = userRepository.getUser(true)
-    if (user != null) {
-      viewState.value = MainViewState.UserDataLoaded(user)
-    } else {
-      viewState.value = MainViewState.Error("Failed to load user data")
+  suspend fun loadInitialUser() {
+    try {
+      val user = userRepository.getSavedUser()
+      user?.let {
+        viewState.value = MainViewState.UserDataLoaded(user)
+      } ?: run {
+        viewState.value = MainViewState.Error("Failed to load user data")
+      }
+    } catch (e: Exception) {
+      viewState.value = MainViewState.Error("Failed to load user data: ${e.message}")
     }
   }
 
-  fun showUserList() {
-    // Loading state
-    viewState.value = MainViewState.Loading
+  suspend fun refreshUser() {
+    try {
+      viewState.value = MainViewState.Loading
+      val user = userRepository.getSavedUser()
+      user?.let {
+        viewState.value = MainViewState.UserDataLoaded(user)
+      } ?: run {
+        viewState.value = MainViewState.Error("Failed to load user data")
+      }
+    } catch (e: Exception) {
+      viewState.value = MainViewState.Error("Failed to load user data: ${e.message}")
+    }
+  }
 
-    // Fetch user list and handle success or error
-    val users = userRepository.getUsers()
-    if (users.isNotEmpty()) {
-      viewState.value = MainViewState.UserListLoaded(users)
-    } else {
-      viewState.value = MainViewState.Error("Failed to load user list")
+  suspend fun showUserList() {
+    try {
+      viewState.value = MainViewState.Loading
+      val usersResult = userRepository.getUsers(true)
+      if (usersResult is ApiResult.Success<List<User>>) {
+        val users = usersResult.data
+        viewState.value = MainViewState.UserListLoaded(users)
+      } else if (usersResult is ApiResult.Failure) {
+        viewState.value = MainViewState.Error("Failed to load user list: ${usersResult.error.message}")
+      }
+    } catch (e: Exception) {
+      viewState.value = MainViewState.Error("Failed to load user list: ${e.message}")
     }
   }
 }
+
 
 class UserAdapter(
   private var userList: List<User>,
@@ -230,5 +250,4 @@ class UserAdapter(
     notifyDataSetChanged()
   }
 }
-
 

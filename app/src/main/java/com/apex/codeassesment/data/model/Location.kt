@@ -7,7 +7,7 @@ import kotlinx.parcelize.Parcelize
 @Parcelize
 @JsonClass(generateAdapter = true)
 data class Location(
-    val street: Street? = null,
+    val street: Coordinates? = null,
     val city: String? = null,
     val state: String? = null,
     val country: String? = null,
